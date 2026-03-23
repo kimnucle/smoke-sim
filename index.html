@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
+    
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-CD4DPSF8C4"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -17,6 +17,8 @@
     <meta property="og:image" content="https://kimnucle.github.io/smoke-sim/thumb.png">
     <meta property="og:url" content="https://kimnucle.github.io/smoke-sim/">
     <meta property="og:type" content="website">
+    
+    <link rel="apple-touch-icon" href="icon.png">
 
     <title>사이버 담타</title>
 
@@ -24,6 +26,16 @@
         :root {
             --bg-color: #121212;
             --accent: #ff4500;
+        }
+
+        /* 전체 드래그 및 선택 방지 */
+        * {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none; /* iOS 꾹 누르기 메뉴 방지 */
+            -webkit-tap-highlight-color: transparent; /* 모바일 터치 하이라이트 제거 */
         }
 
         body {
@@ -42,6 +54,7 @@
             touch-action: manipulation;
         }
 
+        /* 상단 통계 판 */
         .stats-container {
             width: 85%;
             background: rgba(255, 255, 255, 0.05);
@@ -56,6 +69,7 @@
         .stat-label { font-size: 0.75rem; color: #888; margin-bottom: 5px; }
         .stat-value { font-size: 1.1rem; font-weight: 700; color: #ffcc00; }
 
+        /* 세로형 담배 무대 */
         .stage {
             flex: 1;
             display: flex;
@@ -99,10 +113,11 @@
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
-            bottom: 360px; /* INITIAL_HEIGHT + FILTER_HEIGHT */
+            bottom: 360px; /* INITIAL_HEIGHT(300) + FILTER_HEIGHT(60) */
             z-index: 2;
         }
 
+        /* 하단 컨트롤 */
         .controls {
             width: 100%;
             display: flex;
@@ -122,12 +137,15 @@
             font-weight: 700;
             cursor: pointer;
             transition: 0.2s;
-            -webkit-tap-highlight-color: transparent;
+            outline: none;
         }
 
         #donutBtn { background: #444; color: white; display: block; }
+        #donutBtn:active { transform: scale(0.95); background: #555; }
+        
         #resetBtn { background: var(--accent); color: white; display: none; }
 
+        /* 연기 파티클 */
         .smoke, .donut {
             position: absolute;
             pointer-events: none;
@@ -137,6 +155,7 @@
         .smoke { background: rgba(255, 255, 255, 0.2); }
         .donut { border: 6px solid rgba(255, 255, 255, 0.4); filter: blur(2px); }
 
+        /* 꾹 누를 때 효과 */
         .burning .cherry {
             background: #ff8c00;
             box-shadow: 0 0 30px #ff4500, 0 0 10px #fff;
@@ -157,7 +176,7 @@
         </div>
     </div>
 
-    <div class="stage" id="stage">
+    <div class="stage">
         <div class="cigarette-unit" id="cigUnit">
             <div class="cherry" id="cherry"></div>
             <div class="tobacco" id="tobacco"></div>
@@ -190,7 +209,7 @@
 
         function updateStats() {
             try {
-                const data = JSON.parse(localStorage.getItem('smokeStatsVFinal')) || { total: 0, start: new Date().toISOString(), history: {} };
+                const data = JSON.parse(localStorage.getItem('smokeStats_Final')) || { total: 0, start: new Date().toISOString(), history: {} };
                 const today = new Date().toISOString().split('T')[0];
                 document.getElementById('todayCount').innerText = data.history[today] || 0;
                 const days = Math.max(1, Math.ceil((new Date() - new Date(data.start)) / (1000*60*60*24)));
@@ -204,7 +223,7 @@
             const today = new Date().toISOString().split('T')[0];
             data.total += 1;
             data.history[today] = (data.history[today] || 0) + 1;
-            localStorage.setItem('smokeStatsVFinal', JSON.stringify(data));
+            localStorage.setItem('smokeStats_Final', JSON.stringify(data));
             updateStats();
 
             // GA 이벤트 전송
@@ -229,22 +248,27 @@
         function finish() {
             if (animationId) cancelAnimationFrame(animationId);
             animationId = null;
+
             tobacco.style.height = '0px';
             cherry.style.bottom = FILTER_HEIGHT + 'px';
             cherry.style.visibility = 'hidden';
+            
             resetBtn.style.display = 'block';
             donutBtn.style.display = 'none';
-            statusHint.innerText = "한 개비를 다 피웠습니다.";
+            statusHint.innerText = "사이버 담타 종료. 노담합시다!";
+            
             addRecord();
         }
 
         function reset() {
             if (animationId) cancelAnimationFrame(animationId);
             animationId = null;
+
             currentHeight = INITIAL_HEIGHT;
             tobacco.style.height = INITIAL_HEIGHT + 'px';
             cherry.style.bottom = (INITIAL_HEIGHT + FILTER_HEIGHT - 4) + 'px';
             cherry.style.visibility = 'visible';
+            
             resetBtn.style.display = 'none';
             donutBtn.style.display = 'block';
             statusHint.innerText = "화면을 꾹 누르면 더 빨리 탑니다";
@@ -258,6 +282,7 @@
             el.className = isDonut ? 'donut' : 'smoke';
             const rect = cherry.getBoundingClientRect();
             const size = isDonut ? 40 : Math.random() * 20 + 10;
+            
             el.style.width = size + 'px';
             el.style.height = size + 'px';
             el.style.left = (rect.left + rect.width / 2 - size / 2) + 'px'; 
@@ -276,12 +301,16 @@
             if (isDonut) gtag('event', 'donut_made');
         }
 
+        // 터치 및 마우스 이벤트
         const startBurn = (e) => { 
             if(e.target.tagName === 'BUTTON') return;
             isBurningFast = true; 
             cigUnit.classList.add('burning'); 
         };
-        const endBurn = () => { isBurningFast = false; cigUnit.classList.remove('burning'); };
+        const endBurn = () => { 
+            isBurningFast = false; 
+            cigUnit.classList.remove('burning'); 
+        };
 
         window.addEventListener('mousedown', startBurn);
         window.addEventListener('mouseup', endBurn);
@@ -298,6 +327,7 @@
             reset();
         });
 
+        // 초기 구동
         updateStats();
         animate();
     </script>
