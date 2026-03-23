@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cigarette Vertical Fixed</title>
+    <title>Cigarette Master Fixed</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -26,7 +26,6 @@
             touch-action: manipulation;
         }
 
-        /* 통계 영역 */
         .stats-container {
             width: 85%;
             background: rgba(255, 255, 255, 0.05);
@@ -41,11 +40,10 @@
         .stat-label { font-size: 0.75rem; color: #888; margin-bottom: 5px; }
         .stat-value { font-size: 1.1rem; font-weight: 700; color: #ffcc00; }
 
-        /* --- 세로형 담배 메인 스테이지 --- */
         .stage {
             flex: 1;
             display: flex;
-            align-items: flex-end; /* 담배를 무대 바닥에 정렬 */
+            align-items: flex-end;
             justify-content: center;
             width: 100%;
             position: relative;
@@ -53,53 +51,42 @@
 
         .cigarette-unit {
             display: flex;
-            flex-direction: column; /* 세로 정렬 */
+            flex-direction: column;
             align-items: center;
-            position: relative; /* 자식 absolute 배치의 기준 */
-            transform: scale(1.3); /* 모바일 확대 */
-            margin-bottom: 50px; /* 바닥에서 약간 띄움 */
+            position: relative;
+            transform: scale(1.3);
+            margin-bottom: 50px;
         }
 
         .filter {
-            width: 30px; 
-            height: 60px; /* 세로 */
+            width: 30px; height: 60px;
             background: linear-gradient(to right, #e6a15c, #c07d39, #e6a15c);
-            border-radius: 0 0 5px 5px; /* 아래쪽 둥글게 */
+            border-radius: 0 0 5px 5px;
             box-shadow: inset 0 -2px 5px rgba(0,0,0,0.2);
-            order: 3; /* 아래 */
-            margin-top: -1px; /* 바디와 겹침 방지 */
+            order: 3;
         }
 
         .tobacco {
-            width: 28px; 
-            height: 300px; /* 초기 길이 */
+            width: 28px; height: 300px;
             background: linear-gradient(to right, #ffffff, #f7f7f7, #ffffff);
-            transform-origin: bottom; /* 아래 기준 짧아짐 */
+            transform-origin: bottom;
             position: relative;
-            order: 2; /* 가운데 */
-            z-index: 1; /* 불꽃보다 아래 */
+            order: 2;
+            z-index: 1;
         }
 
-        /* --- 🔥 수정된 불꽃 CSS (위치 고정) --- */
         .cherry {
-            width: 30px; 
-            height: 8px; /* 가로형 불꽃 */
+            width: 30px; height: 8px;
             background: #ff4500;
             box-shadow: 0 0 15px #ff4500, 0 0 5px #fff;
-            border-radius: 4px 4px 0 0; /* 위쪽 둥글게 */
-            
-            position: absolute; /* .cigarette-unit 기준 절대 좌표 */
+            border-radius: 4px 4px 0 0;
+            position: absolute;
             left: 50%;
-            transform: translateX(-50%); /* 가로 중앙 완벽 고정 */
-            
-            /* 초기 위치: tobacco 맨 위에 배치 (tobacco height + filter height) */
-            bottom: calc(300px + 60px); 
-            z-index: 2; /* tobacco 위에 배치 */
-            
-            order: 1; /* absolute라 배치 의미 없음 */
+            transform: translateX(-50%);
+            bottom: 360px; /* INITIAL_HEIGHT + FILTER_HEIGHT */
+            z-index: 2;
         }
 
-        /* 버튼 영역 */
         .controls {
             width: 100%;
             display: flex;
@@ -122,30 +109,22 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        #donutBtn { background: #444; color: white; }
-        #donutBtn:active { background: #666; transform: scale(0.95); }
-
+        #donutBtn { background: #444; color: white; display: block; }
         #resetBtn { background: var(--accent); color: white; display: none; }
 
-        /* 연기 & 도넛 애니메이션 (세로 최적화) */
         .smoke, .donut {
             position: absolute;
             pointer-events: none;
             border-radius: 50%;
             filter: blur(4px);
         }
-
         .smoke { background: rgba(255, 255, 255, 0.2); }
-        
-        .donut {
-            border: 6px solid rgba(255, 255, 255, 0.4);
-            filter: blur(2px);
-        }
+        .donut { border: 6px solid rgba(255, 255, 255, 0.4); filter: blur(2px); }
 
         .burning .cherry {
             background: #ff8c00;
             box-shadow: 0 0 30px #ff4500, 0 0 10px #fff;
-            transform: translateX(-50%) scaleY(1.3); /* 중앙 유지하며 세로 확대 */
+            transform: translateX(-50%) scaleY(1.3);
         }
     </style>
 </head>
@@ -171,7 +150,7 @@
     </div>
 
     <div class="controls">
-        <div style="color: #666; font-size: 0.8rem;">화면 아무 곳이나 꾹 누르면 더 빨리 탑니다</div>
+        <div id="statusHint" style="color: #666; font-size: 0.8rem;">화면을 꾹 누르면 더 빨리 탑니다</div>
         <button class="btn" id="donutBtn">🍩 도넛 만들기</button>
         <button class="btn" id="resetBtn">새 담배 꺼내기</button>
     </div>
@@ -182,23 +161,27 @@
         const resetBtn = document.getElementById('resetBtn');
         const donutBtn = document.getElementById('donutBtn');
         const cigUnit = document.getElementById('cigUnit');
+        const statusHint = document.getElementById('statusHint');
 
-        const INITIAL_HEIGHT = 300; // 초기 길이
-        const FILTER_HEIGHT = 60;   // 필터 높이 (CSS와 동일)
+        const INITIAL_HEIGHT = 300;
+        const FILTER_HEIGHT = 60;
         let currentHeight = INITIAL_HEIGHT;
         let isBurningFast = false;
-        let animationId;
+        let animationId = null;
 
-        const NORMAL_SPEED = 0.03;
-        const FAST_SPEED = 0.4;
+        // 속도 설정 (0.03은 꽤 느리니 테스트를 위해 약간 올렸습니다)
+        const NORMAL_SPEED = 0.05; 
+        const FAST_SPEED = 0.6;
 
         function updateStats() {
-            const data = JSON.parse(localStorage.getItem('smokeStatsV3')) || { total: 0, start: new Date().toISOString(), history: {} };
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('todayCount').innerText = data.history[today] || 0;
-            const days = Math.max(1, Math.ceil((new Date() - new Date(data.start)) / (1000*60*60*24)));
-            document.getElementById('avgCount').innerText = (data.total / days).toFixed(1);
-            return data;
+            try {
+                const data = JSON.parse(localStorage.getItem('smokeStatsVFinal')) || { total: 0, start: new Date().toISOString(), history: {} };
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('todayCount').innerText = data.history[today] || 0;
+                const days = Math.max(1, Math.ceil((new Date() - new Date(data.start)) / (1000*60*60*24)));
+                document.getElementById('avgCount').innerText = (data.total / days).toFixed(1);
+                return data;
+            } catch(e) { return { total: 0, history: {} }; }
         }
 
         function addRecord() {
@@ -206,26 +189,19 @@
             const today = new Date().toISOString().split('T')[0];
             data.total += 1;
             data.history[today] = (data.history[today] || 0) + 1;
-            localStorage.setItem('smokeStatsV3', JSON.stringify(data));
+            localStorage.setItem('smokeStatsVFinal', JSON.stringify(data));
             updateStats();
         }
 
-        // --- 🔥 수정된 애니메이션 로직 (불꽃 위치 추적) ---
         function animate() {
             if (currentHeight > 0) {
                 const speed = isBurningFast ? FAST_SPEED : NORMAL_SPEED;
                 currentHeight -= speed;
                 
-                // 1. tobacco 높이 조절
-                tobacco.style.height = currentHeight + 'px';
+                tobacco.style.height = Math.max(0, currentHeight) + 'px';
+                cherry.style.bottom = (Math.max(0, currentHeight) + FILTER_HEIGHT - 4) + 'px';
                 
-                // 2. cherry 위치 조절 (tobacco 위에 고정)
-                // bottom: (현재 담배 높이 + 필터 높이 - 불꽃 중앙 오프셋)
-                // 불꽃 높이(8px)의 절반만큼 tobacco와 겹치게(4px) 설정
-                const offset = 4;
-                cherry.style.bottom = (currentHeight + FILTER_HEIGHT - offset) + 'px';
-                
-                if (Math.random() > 0.90) createSmoke(false);
+                if (Math.random() > 0.92) createSmoke(false);
                 animationId = requestAnimationFrame(animate);
             } else {
                 finish();
@@ -233,62 +209,72 @@
         }
 
         function finish() {
-            cancelAnimationFrame(animationId);
+            if (animationId) cancelAnimationFrame(animationId);
+            animationId = null;
+
             tobacco.style.height = '0px';
-            // 다 탔을 때 불꽃은 필터 바로 위에 고정
             cherry.style.bottom = FILTER_HEIGHT + 'px';
             cherry.style.visibility = 'hidden';
+            
             resetBtn.style.display = 'block';
             donutBtn.style.display = 'none';
+            statusHint.innerText = "한 개비를 다 피웠습니다.";
+            
             addRecord();
         }
 
         function reset() {
+            // 1. 기존 애니메이션 완전 중지
+            if (animationId) cancelAnimationFrame(animationId);
+            animationId = null;
+
+            // 2. 변수 및 UI 초기화
             currentHeight = INITIAL_HEIGHT;
             tobacco.style.height = INITIAL_HEIGHT + 'px';
+            cherry.style.bottom = (INITIAL_HEIGHT + FILTER_HEIGHT - 4) + 'px';
             cherry.style.visibility = 'visible';
+            
+            // 3. 버튼 상태 교체
             resetBtn.style.display = 'none';
             donutBtn.style.display = 'block';
+            statusHint.innerText = "화면을 꾹 누르면 더 빨리 탑니다";
+            
+            // 4. 애니메이션 다시 시작
             animate();
         }
 
-        // --- 연기 & 도넛 생성 (중앙 중앙 정렬 수정) ---
         function createSmoke(isDonut) {
             const el = document.createElement('div');
             el.className = isDonut ? 'donut' : 'smoke';
-            
             const rect = cherry.getBoundingClientRect();
-            const size = isDonut ? 30 : Math.random() * 20 + 10;
-            
+            const size = isDonut ? 40 : Math.random() * 20 + 10;
             el.style.width = size + 'px';
             el.style.height = size + 'px';
-            // 불꽃 가로 중앙에 연기/도넛 배치
             el.style.left = (rect.left + rect.width / 2 - size / 2) + 'px'; 
-            el.style.top = (rect.top + rect.height / 2 - size / 2) + 'px'; // 불꽃 세로 중앙 오프셋 추가
-            
+            el.style.top = (rect.top) + 'px';
             document.body.appendChild(el);
 
-            const xMove = isDonut ? (Math.random() > 0.5 ? 150 : -150) : (Math.random() - 0.5) * 60;
-            const yMove = isDonut ? -30 : -150;
+            const xMove = isDonut ? (Math.random() > 0.5 ? 120 : -120) : (Math.random() - 0.5) * 80;
+            const yMove = isDonut ? -60 : -200;
 
             el.animate([
                 { transform: 'translate(0, 0) scale(1)', opacity: 0.5 },
-                { transform: `translate(${xMove}px, ${yMove}px) scale(${isDonut ? 2.5 : 3})`, opacity: 0 }
-            ], {
-                duration: isDonut ? 3000 : 2500,
-                easing: 'ease-out'
-            }).onfinish = () => el.remove();
+                { transform: `translate(${xMove}px, ${yMove}px) scale(${isDonut ? 2 : 4})`, opacity: 0 }
+            ], { duration: isDonut ? 2500 : 3000, easing: 'ease-out' })
+            .onfinish = () => el.remove();
         }
 
-        // --- 이벤트 바인딩 ---
-        const startBurn = () => { isBurningFast = true; cigUnit.classList.add('burning'); };
+        // 이벤트 리스너
+        const startBurn = (e) => { 
+            if(e.target.tagName === 'BUTTON') return;
+            isBurningFast = true; 
+            cigUnit.classList.add('burning'); 
+        };
         const endBurn = () => { isBurningFast = false; cigUnit.classList.remove('burning'); };
 
         window.addEventListener('mousedown', startBurn);
         window.addEventListener('mouseup', endBurn);
-        window.addEventListener('touchstart', (e) => { 
-            if(e.target.tagName !== 'BUTTON') startBurn(); 
-        });
+        window.addEventListener('touchstart', startBurn);
         window.addEventListener('touchend', endBurn);
 
         donutBtn.addEventListener('click', (e) => {
@@ -296,12 +282,12 @@
             createSmoke(true);
         });
 
-        resetBtn.addEventListener('click', (e) => {smo
+        resetBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             reset();
         });
 
-        // 초기화
+        // 초기 실행
         updateStats();
         animate();
     </script>
