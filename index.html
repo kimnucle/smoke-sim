@@ -3,14 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    
+
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-CD4DPSF8C4"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'G-CD4DPSF8C4');
-    </script> <meta property="og:title" content="사이버 담타">
+    </script>
+
+    <meta property="og:title" content="사이버 담타">
     <meta property="og:description" content="노담합시다">
     <meta property="og:image" content="https://kimnucle.github.io/smoke-sim/thumb.png">
     <meta property="og:url" content="https://kimnucle.github.io/smoke-sim/">
@@ -18,11 +20,6 @@
 
     <title>사이버 담타</title>
 
-    
-</script>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cigarette Master Fixed</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -188,7 +185,6 @@
         let isBurningFast = false;
         let animationId = null;
 
-        // 속도 설정 (0.03은 꽤 느리니 테스트를 위해 약간 올렸습니다)
         const NORMAL_SPEED = 0.05; 
         const FAST_SPEED = 0.6;
 
@@ -210,6 +206,9 @@
             data.history[today] = (data.history[today] || 0) + 1;
             localStorage.setItem('smokeStatsVFinal', JSON.stringify(data));
             updateStats();
+
+            // GA 이벤트 전송
+            gtag('event', 'cigarette_finished', { 'total_count': data.total });
         }
 
         function animate() {
@@ -230,35 +229,27 @@
         function finish() {
             if (animationId) cancelAnimationFrame(animationId);
             animationId = null;
-
             tobacco.style.height = '0px';
             cherry.style.bottom = FILTER_HEIGHT + 'px';
             cherry.style.visibility = 'hidden';
-            
             resetBtn.style.display = 'block';
             donutBtn.style.display = 'none';
             statusHint.innerText = "한 개비를 다 피웠습니다.";
-            
             addRecord();
         }
 
         function reset() {
-            // 1. 기존 애니메이션 완전 중지
             if (animationId) cancelAnimationFrame(animationId);
             animationId = null;
-
-            // 2. 변수 및 UI 초기화
             currentHeight = INITIAL_HEIGHT;
             tobacco.style.height = INITIAL_HEIGHT + 'px';
             cherry.style.bottom = (INITIAL_HEIGHT + FILTER_HEIGHT - 4) + 'px';
             cherry.style.visibility = 'visible';
-            
-            // 3. 버튼 상태 교체
             resetBtn.style.display = 'none';
             donutBtn.style.display = 'block';
             statusHint.innerText = "화면을 꾹 누르면 더 빨리 탑니다";
             
-            // 4. 애니메이션 다시 시작
+            gtag('event', 'cigarette_reset');
             animate();
         }
 
@@ -281,9 +272,10 @@
                 { transform: `translate(${xMove}px, ${yMove}px) scale(${isDonut ? 2 : 4})`, opacity: 0 }
             ], { duration: isDonut ? 2500 : 3000, easing: 'ease-out' })
             .onfinish = () => el.remove();
+
+            if (isDonut) gtag('event', 'donut_made');
         }
 
-        // 이벤트 리스너
         const startBurn = (e) => { 
             if(e.target.tagName === 'BUTTON') return;
             isBurningFast = true; 
@@ -306,7 +298,6 @@
             reset();
         });
 
-        // 초기 실행
         updateStats();
         animate();
     </script>
